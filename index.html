@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<title>My Bookshelf</title>
+
+<!-- Reader libraries: load JSZip before EPUB.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+
+<style>
+:root {
+ --bg:#101114;
+ --panel:#191b20;
+ --panel2:#242730;
+ --text:#f5f3fa;
+ --muted:#a8a5b2;
+ --accent:#b9a4ff;
+ --border:#343640;
+}
+
+* {
+ box-sizing:border-box;
+}
+
+body {
+ margin:0;
+ background:var(--bg);
+ color:var(--text);
+ font-family:system-ui,-apple-system,Arial,sans-serif;
+}
+
+/* HEADER */
+
+header {
+ max-width:1150px;
+ margin:auto;
+ padding:22px;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+}
+
+.logo {
+ font-size:25px;
+ font-weight:800;
+ letter-spacing:-.7px;
+}
+
+.logo span {
+ color:var(--accent);
+}
+
+button,.upload {
+ border:0;
+ border-radius:12px;
+ padding:12px 16px;
+ background:var(--accent);
+ color:#171321;
+ font-weight:700;
+ cursor:pointer;
+}
+
+.secondary {
+ background:var(--panel2);
+ color:white;
+ border:1px solid var(--border);
+}
+
+/* HOME */
+
+main {
+ max-width:1150px;
+ margin:auto;
+ padding:0 20px 60px;
+}
+
+.hero {
+ padding:27px;
+ border-radius:23px;
+ background:linear-gradient(120deg,#302744,#1b2432);
+ margin:5px 0 25px;
+}
+
+.hero h1 {
+ font-size:clamp(26px,5vw,37px);
+ margin:0 0 8px;
+}
+
+.hero p {
+ color:#d9d2e9;
+ margin:0;
+ line-height:1.6;
+}
+
+.toolbar {
+ display:flex;
+ gap:10px;
+ margin-bottom:25px;
+}
+
+.toolbar input {
+ flex:1;
+ min-width:0;
+ padding:14px;
+ border-radius:12px;
+ border:1px solid var(--border);
+ background:var(--panel);
+ color:white;
+}
+
+.heading {
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ margin:20px 0 15px;
+}
+
+.heading h2 {
+ font-size:20px;
+}
+
+.muted {
+ color:var(--muted);
+ font-size:12px;
+}
+
+/* BOOK GRID */
+
+.grid {
+ display:grid;
+ grid-template-columns:repeat(auto-fill,minmax(145px,1fr));
+ gap:18px;
+}
+
+.book {
+ min-width:0;
+ cursor:pointer;
+}
+
+.cover {
+ height:195px;
+ border-radius:12px;
+ background:linear-gradient(145deg,#403754,#202630);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ padding:15px;
+ box-shadow:0 8px 20px #0005;
+ overflow:hidden;
+ border:1px solid #ffffff12;
+}
+
+.cover img {
+ max-width:100%;
+ max-height:100%;
+ object-fit:contain;
+}
+
+.cover-title {
+ font-size:15px;
+ font-weight:750;
+ overflow-wrap:anywhere;
+ line-height:1.4;
+}
+
+.cover-icon {
+ font-size:38px;
+ margin-bottom:12px;
+}
+
+.book-title {
+ margin-top:10px;
+ font-weight:700;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis;
+}
+
+.progress {
+ height:4px;
+ background:#343640;
+ border-radius:5px;
+ margin-top:9px;
+ overflow:hidden;
+}
+
+.progress div {
+ height:100%;
+ background:var(--accent);
+}
+
+.empty {
+ grid-column:1/-1;
+ text-align:center;
+ padding:40px;
+ color:var(--muted);
+ border:1px dashed var(--border);
+ border-radius:18px;
+}
+
+/* READER */
+
+#reader {
+ display:none;
+ position:fixed;
+ inset:0;
+ z-index:1000;
+ flex-direction:column;
+ background:#121212;
+ color:white;
+}
+
+#reader.dark {
+ --reader-bg:#121212;
+ --reader-text:#eeeeee;
+ --reader-panel:#181818;
+}
+
+#reader.white {
+ --reader-bg:#ffffff;
+ --reader-text:#171717;
+ --reader-panel:#f4f4f4;
+}
+
+#reader.system {
+ --reader-bg:#ffffff;
+ --reader-text:#171717;
+ --reader-panel:#f4f4f4;
+}
+
+@media(prefers-color-scheme:dark) {
+ #reader.system {
+  --reader-bg:#121212;
+  --reader-text:#eeeeee;
+  --reader-panel:#181818;
+ }
+}
+
+.readerbar {
+ min-height:57px;
+ padding:9px 13px;
+ display:flex;
+ align-items:center;
+ gap:10px;
+ background:var(--reader-panel);
+ color:var(--reader-text);
+ border-bottom:1px solid #8882;
+}
+
+.readerbar strong {
+ flex:1;
+ overflow:hidden;
+ text-overflow:ellipsis;
+ white-space:nowrap;
+}
+
+.readerbar button {
+ padding:9px 12px;
+}
+
+.reader-settings {
+ display:flex;
+ align-items:center;
+ gap:10px;
+ padding:10px 14px;
+ background:var(--reader-panel);
+ color:var(--reader-text);
+}
+
+.reader-settings select {
+ padding:10px;
+ border-radius:9px;
+ background:var(--reader-bg);
+ color:var(--reader-text);
+ border:1px solid #8885;
+}
+
+.reader-settings button {
+ padding:9px 13px;
+}
+
+#content {
+ flex:1;
+ position:relative;
+ overflow:auto;
+ display:flex;
+ justify-content:center;
+ align-items:flex-start;
+ background:var(--reader-bg);
+ color:var(--reader-text);
+ padding:0;
+}
+
+/* TEXT READER */
+
+#textContent {
+ width:100%;
+ max-width:850px;
+ min-height:100%;
+ padding:35px 28px 70px;
+ background:var(--reader-bg);
+ color:var(--reader-text);
+ font-family:Georgia,serif;
+ font-size:20px;
+ line-height:1.8;
+ overflow-wrap:anywhere;
+}
+
+#textContent pre {
+ white-space:pre-wrap;
+ font:inherit;
+}
+
+#textContent img {
+ max-width:100%;
+ height:auto;
+}
+
+#textContent h1,
+#textContent h2,
+#textContent h3 {
+ line-height:1.35;
+}
+
+/* PDF */
+
+#pdfCanvas {
+ max-width:100%;
+ height:auto;
+ background:white;
+ box-shadow:0 3px 20px #0004;
+}
+
+/* EPUB */
+
+#epubMount {
+ width:100%;
+ height:100%;
+ min-height:100%;
+}
+
+/* TAP ZONES */
+
+.page-zone {
+ position:absolute;
+ top:0;
+ bottom:0;
+ width:22%;
+ z-index:10;
+ border:0;
+ background:transparent;
+ padding:0;
+}
+
+.page-left {
+ left:0;
+}
+
+.page-right {
+ right:0;
+}
+
+.page-middle {
+ position:absolute;
+ top:0;
+ bottom:0;
+ left:22%;
+ width:56%;
+ z-index:9;
+ background:transparent;
+ border:0;
+}
+
+/* BOTTOM CONTROLS */
+
+.reader-bottom {
+ padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+ background:var(--reader-panel);
+ color:var(--reader-text);
+ border-top:1px solid #8882;
+}
+
+.progress-controls {
+ display:flex;
+ align-items:center;
+ gap:12px;
+}
+
+.progress-controls input {
+ flex:1;
+ accent-color:var(--accent);
+ min-width:0;
+}
+
+.progress-controls span {
+ font-size:12px;
+ min-width:50px;
+ text-align:center;
+}
+
+.reader-bottom.hidden-controls,
+.readerbar.hidden-controls,
+.reader-settings.hidden-controls {
+ display:none;
+}
+
+.hidden {
+ display:none!important;
+}
+
+@media(max-width:520px) {
+
+ header {
+  padding:18px;
+ }
+
+ .grid {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+ }
+
+ .cover {
+  height:185px;
+ }
+
+ .readerbar {
+  gap:6px;
+ }
+
+ .readerbar button {
+  padding:9px;
+ }
+
+ #textContent {
+  padding:28px 22px 60px;
+ }
+
+}
+</style>
+</head>
+
+<body>
+
+<header>
+
+ <div class="logo">
+  My <span>Bookshelf</span>
+ </div>
+
+ <label class="upload">
+  + Add Books
+  <input type="file" id="fileInput" hidden multiple
+  accept=".pdf,.epub,.txt,.docx,.html,.htm,.md,.cbz,.jpg,.jpeg,.png,.webp">
+ </label>
+
+</header>
+
+<main>
+
+ <section class="hero">
+  <h1>Your Personal Library.</h1>
+  <p>Your books. Your library. Your reading experience.</p>
+ </section>
+
+ <div class="toolbar">
+
+  <input id="search" placeholder="Search your books...">
+
+  <button class="secondary" id="sortButton">
+   A–Z
+  </button>
+
+ </div>
+
+ <div class="heading">
+  <h2>My Library</h2>
+  <span class="muted" id="bookCount">0 books</span>
+ </div>
+
+ <div class="grid" id="library"></div>
+
+</main>
+
+
+<!-- FULL SCREEN READER -->
+
+<section id="reader" class="dark">
+
+ <div class="readerbar" id="readerBar">
+
+  <button class="secondary" onclick="closeReader()">←</button>
+
+  <strong id="bookName">Reading</strong>
+
+  <button class="secondary" onclick="previousPage()">‹</button>
+
+  <button class="secondary" onclick="nextPage()">›</button>
+
+  <button class="secondary" onclick="addBookmark()">☆</button>
+
+ </div>
+
+
+ <div class="reader-settings" id="readerSettings">
+
+  <select id="themeSelect">
+   <option value="system">System theme</option>
+   <option value="dark">Dark theme</option>
+   <option value="white">White theme</option>
+  </select>
+
+  <button class="secondary" onclick="changeFont(-1)">A−</button>
+
+  <button class="secondary" onclick="changeFont(1)">A+</button>
+
+  <button class="secondary" onclick="toggleFullscreen()">⛶</button>
+
+ </div>
+
+
+ <div id="content">
+
+  <div id="textContent" class="hidden"></div>
+
+  <canvas id="pdfCanvas" class="hidden"></canvas>
+
+  <button class="page-zone page-left"
+   aria-label="Previous page"
+   onclick="previousPage()"></button>
+
+  <button class="page-middle"
+   aria-label="Toggle controls"
+   onclick="toggleControls()"></button>
+
+  <button class="page-zone page-right"
+   aria-label="Next page"
+   onclick="nextPage()"></button>
+
+ </div>
+
+
+ <div class="reader-bottom" id="readerBottom">
+
+  <div class="progress-controls">
+
+   <span id="pageNumber">1</span>
+
+   <input type="range" id="pageSlider"
+    min="1" max="1" value="1">
+
+   <span id="percentage">0%</span>
+
+  </div>
+
+ </div>
+
+</section>
+
+
+<script>
+
+// ==================================
+// CONFIGURATION
+// ==================================
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const DB_NAME = "MyBookshelfV3";
+const STORE = "books";
+
+let db;
+let books = [];
+let current = null;
+
+let pdf = null;
+let epub = null;
+let rendition = null;
+
+let pages = [];
+let page = 1;
+let total = 1;
+
+let fontSize = Number(localStorage.getItem("bookFontSize")) || 20;
+let sortAZ = false;
+
+const $ = id => document.getElementById(id);
+
+
+// ==================================
+// DATABASE
+// ==================================
+
+function openDatabase() {
+
+ return new Promise((resolve,reject)=>{
+
+  const request = indexedDB.open(DB_NAME,1);
+
+  request.onupgradeneeded = () => {
+
+   request.result.createObjectStore(STORE,{
+    keyPath:"id"
+   });
+
+  };
+
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+
+ });
+
+}
+
+function saveBook(book) {
+
+ return new Promise((resolve,reject)=>{
+
+  const transaction = db.transaction(STORE,"readwrite");
+
+  transaction.objectStore(STORE).put(book);
+
+  transaction.oncomplete = resolve;
+  transaction.onerror = () => reject(transaction.error);
+
+ });
+
+}
+
+function getBooks() {
+
+ return new Promise((resolve,reject)=>{
+
+  const request = db.transaction(STORE,"readonly")
+   .objectStore(STORE).getAll();
+
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+
+ });
+
+}
+
+function deleteBook(id) {
+
+ return new Promise((resolve,reject)=>{
+
+  const transaction = db.transaction(STORE,"readwrite");
+
+  transaction.objectStore(STORE).delete(id);
+
+  transaction.oncomplete = resolve;
+  transaction.onerror = () => reject(transaction.error);
+
+ });
+
+}
+
+
+// ==================================
+// UTILITIES
+// ==================================
+
+function extension(name) {
+ return name.split(".").pop().toLowerCase();
+}
+
+function escapeHTML(text) {
+
+ return String(text).replace(/[&<>"']/g,c=>({
+
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+
+ }[c]));
+
+}
+
+function makeID() {
+
+ return crypto.randomUUID
+  ? crypto.randomUUID()
+  : Date.now()+"-"+Math.random();
+
+}
+
+
+// ==================================
+// IMPORT BOOKS
+// ==================================
+
+async function importBook(file) {
+
+ const ext = extension(file.name);
+
+ const supported = [
+  "pdf","epub","txt","docx",
+  "html","htm","md","cbz",
+  "jpg","jpeg","png","webp"
+ ];
+
+ if(!supported.includes(ext)) return;
+
+ let book = {
+
+  id:makeID(),
+
+  name:file.name.replace(/\.[^.]+$/,""),
+
+  type:ext,
+
+  file:file,
+
+  progress:1,
+
+  progressPct:0,
+
+  bookmarks:[],
+
+  added:Date.now()
+
+ };
+
+
+ // PDF
+
+ if(ext==="pdf") {
+
+  const doc = await pdfjsLib.getDocument({
+
+   data:await file.arrayBuffer()
+
+  }).promise;
+
+  book.total = doc.numPages;
+
+  doc.destroy();
+
+ }
+
+
+ // EPUB
+
+ if(ext==="epub") {
+
+  if(!window.JSZip || !window.ePub) {
+
+   throw new Error("EPUB libraries are unavailable.");
+
+  }
+
+  const temp = ePub(await file.arrayBuffer());
+
+  const metadata = await temp.loaded.metadata;
+
+  book.name = metadata.title || book.name;
+
+  temp.destroy();
+
+ }
+
+
+ // TEXT
+
+ if(["txt","md"].includes(ext)) {
+
+  book.text = await file.text();
+
+ }
+
+
+ // HTML
+
+ if(["html","htm"].includes(ext)) {
+
+  book.text = await file.text();
+
+ }
+
+
+ // DOCX
+
+ if(ext==="docx") {
+
+  if(!window.mammoth) {
+
+   throw new Error("DOCX library failed to load.");
+
+  }
+
+  const result = await mammoth.convertToHtml({
+
+   arrayBuffer:await file.arrayBuffer()
+
+  });
+
+  book.html = result.value;
+
+ }
+
+
+ // CBZ
+
+ if(ext==="cbz") {
+
+  const zip = await JSZip.loadAsync(file);
+
+  const names = Object.keys(zip.files)
+
+   .filter(n=>/\.(jpg|jpeg|png|webp)$/i.test(n))
+
+   .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+
+  book.images = [];
+
+  for(const name of names) {
+
+   const blob = await zip.files[name].async("blob");
+
+   book.images.push({
+
+    data:await blob.arrayBuffer(),
+
+    type:blob.type || "image/jpeg"
+
+   });
+
+  }
+
+  book.total = book.images.length;
+
+ }
+
+
+ // IMAGE
+
+ if(["jpg","jpeg","png","webp"].includes(ext)) {
+
+  book.images = [{
+
+   data:await file.arrayBuffer(),
+
+   type:file.type
+
+  }];
+
+  book.total = 1;
+
+ }
+
+ await saveBook(book);
+
+}
+
+
+// ==================================
+// FILE INPUT
+// ==================================
+
+$("fileInput").onchange = async e => {
+
+ const files = [...e.target.files];
+
+ for(const file of files) {
+
+  try {
+
+   await importBook(file);
+
+  } catch(error) {
+
+   alert("Import failed: "+file.name+"\n"+error.message);
+
+   console.error(error);
+
+  }
+
+ }
+
+ e.target.value = "";
+
+ await renderLibrary();
+
+};
+
+
+// ==================================
+// LIBRARY
+// ==================================
+
+async function renderLibrary() {
+
+ books = await getBooks();
+
+ const search = $("search").value.toLowerCase();
+
+ let filtered = books.filter(book=>
+
+  book.name.toLowerCase().includes(search)
+
+ );
+
+ filtered.sort((a,b)=>sortAZ
+
+  ? a.name.localeCompare(b.name)
+
+  : b.added-a.added
+
+ );
+
+ $("bookCount").textContent =
+  filtered.length+" books";
+
+ $("library").innerHTML = "";
+
+ if(!filtered.length) {
+
+  $("library").innerHTML =
+   '<div class="empty">Your library is waiting for books 📚</div>';
+
+  return;
+
+ }
+
+ filtered.forEach(book=>{
+
+  const percent = book.progressPct || 0;
+
+  const card = document.createElement("article");
+
+  card.className = "book";
+
+  card.innerHTML = `
+
+   <div class="cover">
+
+    <div>
+
+     <div class="cover-icon">📖</div>
+
+     <div class="cover-title">
+      ${escapeHTML(book.name)}
+     </div>
+
+    </div>
+
+   </div>
+
+   <div class="book-title">
+    ${escapeHTML(book.name)}
+   </div>
+
+   <div class="muted">
+    ${book.type.toUpperCase()} · ${percent}% read
+   </div>
+
+   <div class="progress">
+    <div style="width:${percent}%"></div>
+   </div>
+
+  `;
+
+  card.onclick = () => openBook(book.id);
+
+  card.oncontextmenu = async e => {
+
+   e.preventDefault();
+
+   if(confirm("Delete this book?")) {
+
+    await deleteBook(book.id);
+
+    await renderLibrary();
+
+   }
+
+  };
+
+  $("library").appendChild(card);
+
+ });
+
+}
+
+$("search").oninput = renderLibrary;
+
+$("sortButton").onclick = () => {
+
+ sortAZ = !sortAZ;
+
+ $("sortButton").textContent =
+  sortAZ ? "Recently added" : "A–Z";
+
+ renderLibrary();
+
+};
+
+
+// ==================================
+// READER OPEN
+// ==================================
+
+async function openBook(id) {
+
+ current = books.find(b=>b.id===id);
+
+ if(!current) return;
+
+ $("reader").style.display = "flex";
+
+ $("bookName").textContent = current.name;
+
+ $("textContent").classList.add("hidden");
+
+ $("pdfCanvas").classList.add("hidden");
+
+ pdf = null;
+ epub = null;
+ rendition = null;
+
+ page = current.progress || 1;
+
+ $("readerBar").classList.remove("hidden-controls");
+ $("readerSettings").classList.remove("hidden-controls");
+ $("readerBottom").classList.remove("hidden-controls");
+
+ if(current.type==="pdf") {
+
+  pdf = await pdfjsLib.getDocument({
+
+   data:await current.file.arrayBuffer()
+
+  }).promise;
+
+  total = pdf.numPages;
+
+  page = Math.min(page,total);
+
+  $("pdfCanvas").classList.remove("hidden");
+
+  $("pageSlider").max = total;
+
+  await renderPDF();
+
+ }
+
+ else if(current.type==="epub") {
+
+  if(!window.ePub || !window.JSZip) {
+
+   alert("EPUB libraries failed to load.");
+
+   return;
+
+  }
+
+  $("textContent").classList.remove("hidden");
+
+  $("textContent").style.padding = "0";
+
+  $("textContent").innerHTML =
+
+   '<div id="epubMount"></div>';
+
+  epub = ePub(await current.file.arrayBuffer());
+
+  rendition = epub.renderTo("epubMount",{
+
+   width:"100%",
+   height:"100%",
+   spread:"none"
+
+  });
+
+  applyEPUBTheme();
+
+  rendition.themes.fontSize(fontSize+"px");
+
+  rendition.on("relocated",async location=>{
+
+   current.cfi = location.start.cfi;
+
+   current.progressPct = Math.round(
+
+    (location.start.percentage || 0)*100
+
+   );
+
+   await saveBook(current);
+
+   $("percentage").textContent =
+    current.progressPct+"%";
+
+   $("pageNumber").textContent = "EPUB";
+
+   $("pageSlider").value =
+    current.progressPct;
+
+  });
+
+  $("pageSlider").max = 100;
+
+  await rendition.display(current.cfi || undefined);
+
+ }
+
+ else if(current.type==="docx") {
+
+  $("textContent").classList.remove("hidden");
+
+  $("textContent").innerHTML = current.html;
+
+  total = 1;
+  page = 1;
+
+  updateProgress();
+
+ }
+
+ else if(current.images) {
+
+  pages = current.images;
+
+  total = pages.length;
+
+  page = Math.min(page,total);
+
+  $("textContent").classList.remove("hidden");
+
+  $("pageSlider").max = total;
+
+  renderImage();
+
+ }
+
+ else {
+
+  const raw = current.text || "";
+
+  if(["html","htm"].includes(current.type)) {
+
+   $("textContent").classList.remove("hidden");
+
+   $("textContent").innerHTML = raw;
+
+   total = 1;
+   page = 1;
+
+   updateProgress();
+
+  } else {
+
+   pages = raw.split("\f");
+
+   total = pages.length;
+
+   page = Math.min(page,total);
+
+   $("textContent").classList.remove("hidden");
+
+   $("pageSlider").max = total;
+
+   renderText();
+
+  }
+
+ }
+
+ applyTheme(localStorage.getItem("readerTheme") || "system");
+
+}
+
+
+// ==================================
+// PDF READER
+// ==================================
+
+async function renderPDF() {
+
+ if(!pdf) return;
+
+ const p = await pdf.getPage(page);
+
+ const canvas = $("pdfCanvas");
+
+ const context = canvas.getContext("2d");
+
+ const base = p.getViewport({scale:1});
+
+ const scale = Math.min(
+
+  2,
+
+  ($("content").clientWidth-15)/base.width
+
+ );
+
+ const viewport = p.getViewport({scale});
+
+ const ratio = window.devicePixelRatio || 1;
+
+ canvas.width = viewport.width*ratio;
+
+ canvas.height = viewport.height*ratio;
+
+ canvas.style.width = viewport.width+"px";
+
+ canvas.style.height = viewport.height+"px";
+
+ await p.render({
+
+  canvasContext:context,
+
+  viewport:p.getViewport({
+
+   scale:scale*ratio
+
+  })
+
+ }).promise;
+
+ updateProgress();
+
+}
+
+
+// ==================================
+// TEXT READER
+// ==================================
+
+function renderText() {
+
+ $("textContent").innerHTML =
+
+  "<pre>"+escapeHTML(pages[page-1] || "")+"</pre>";
+
+ $("textContent").style.fontSize = fontSize+"px";
+
+ updateProgress();
+
+}
+
+
+// ==================================
+// IMAGE / COMIC READER
+// ==================================
+
+function renderImage() {
+
+ const item = pages[page-1];
+
+ if(!item) return;
+
+ const blob = new Blob(
+
+  [item.data],
+
+  {type:item.type}
+
+ );
+
+ const url = URL.createObjectURL(blob);
+
+ $("textContent").innerHTML =
+
+  `<img src="${url}" alt="Page ${page}">`;
+
+ updateProgress();
+
+}
+
+
+// ==================================
+// PROGRESS
+// ==================================
+
+async function updateProgress() {
+
+ if(!current) return;
+
+ current.progress = page;
+
+ current.progressPct = Math.round(
+
+  page/Math.max(total,1)*100
+
+ );
+
+ $("pageSlider").value = page;
+
+ $("pageNumber").textContent =
+
+  page+" / "+total;
+
+ $("percentage").textContent =
+
+  current.progressPct+"%";
+
+ await saveBook(current);
+
+}
+
+
+// ==================================
+// PAGE NAVIGATION
+// ==================================
+
+function nextPage() {
+
+ if(rendition) {
+
+  rendition.next();
+
+  return;
+
+ }
+
+ if(page<total) {
+
+  page++;
+
+  if(pdf) renderPDF();
+
+  else if(current.images) renderImage();
+
+  else renderText();
+
+ }
+
+}
+
+function previousPage() {
+
+ if(rendition) {
+
+  rendition.prev();
+
+  return;
+
+ }
+
+ if(page>1) {
+
+  page--;
+
+  if(pdf) renderPDF();
+
+  else if(current.images) renderImage();
+
+  else renderText();
+
+ }
+
+}
+
+$("pageSlider").onchange = () => {
+
+ page = Number($("pageSlider").value);
+
+ if(pdf) renderPDF();
+
+ else if(current.images) renderImage();
+
+ else if(rendition && epub) {
+
+  epub.locations.generate(1000).then(()=>{
+
+   rendition.display(
+
+    epub.locations.cfiFromPercentage(page/100)
+
+   );
+
+  });
+
+ }
+
+ else renderText();
+
+};
+
+
+// ==================================
+// TAP CONTROLS
+// ==================================
+
+function toggleControls() {
+
+ $("readerBar").classList.toggle("hidden-controls");
+
+ $("readerSettings").classList.toggle("hidden-controls");
+
+ $("readerBottom").classList.toggle("hidden-controls");
+
+}
+
+
+// ==================================
+// SWIPE CONTROLS
+// ==================================
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+$("content").addEventListener("touchstart",e=>{
+
+ touchStartX = e.changedTouches[0].screenX;
+
+ touchStartY = e.changedTouches[0].screenY;
+
+},{passive:true});
+
+$("content").addEventListener("touchend",e=>{
+
+ const dx =
+  e.changedTouches[0].screenX-touchStartX;
+
+ const dy =
+  e.changedTouches[0].screenY-touchStartY;
+
+ if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(dy)) {
+
+  if(dx<0) nextPage();
+
+  else previousPage();
+
+ }
+
+},{passive:true});
+
+
+// ==================================
+// THEME SYSTEM
+// ==================================
+
+function applyTheme(theme) {
+
+ $("reader").classList.remove(
+
+  "dark","white","system"
+
+ );
+
+ $("reader").classList.add(theme);
+
+ $("themeSelect").value = theme;
+
+ localStorage.setItem("readerTheme",theme);
+
+ applyEPUBTheme();
+
+}
+
+function applyEPUBTheme() {
+
+ if(!rendition) return;
+
+ const theme =
+  $("reader").classList.contains("dark") ||
+
+  ($("reader").classList.contains("system") &&
+
+   window.matchMedia("(prefers-color-scheme:dark)").matches)
+
+   ? "dark" : "white";
+
+ if(theme==="dark") {
+
+  rendition.themes.default({
+
+   body:{
+
+    color:"#eeeeee !important",
+
+    background:"#121212 !important"
+
+   }
+
+  });
+
+ } else {
+
+  rendition.themes.default({
+
+   body:{
+
+    color:"#171717 !important",
+
+    background:"#ffffff !important"
+
+   }
+
+  });
+
+ }
+
+ rendition.themes.fontSize(fontSize+"px");
+
+}
+
+$("themeSelect").onchange = e => {
+
+ applyTheme(e.target.value);
+
+};
+
+
+// Update system theme while reading
+
+window.matchMedia("(prefers-color-scheme: dark)")
+.addEventListener("change",()=>{
+
+ if($("reader").classList.contains("system")) {
+
+  applyEPUBTheme();
+
+ }
+
+});
+
+
+// ==================================
+// FONT SETTINGS
+// ==================================
+
+function changeFont(amount) {
+
+ fontSize = Math.max(
+
+  12,
+
+  Math.min(38,fontSize+amount)
+
+ );
+
+ $("textContent").style.fontSize = fontSize+"px";
+
+ if(rendition) {
+
+  rendition.themes.fontSize(fontSize+"px");
+
+ }
+
+ localStorage.setItem("bookFontSize",fontSize);
+
+}
+
+
+// ==================================
+// BOOKMARKS
+// ==================================
+
+async function addBookmark() {
+
+ if(!current) return;
+
+ const key =
+
+  rendition ? current.cfi : page;
+
+ current.bookmarks = current.bookmarks || [];
+
+ const index = current.bookmarks.indexOf(key);
+
+ if(index>=0) {
+
+  current.bookmarks.splice(index,1);
+
+ } else {
+
+  current.bookmarks.push(key);
+
+ }
+
+ await saveBook(current);
+
+ alert(index>=0 ? "Bookmark removed." : "Bookmark saved!");
+
+}
+
+
+// ==================================
+// FULLSCREEN
+// ==================================
+
+async function toggleFullscreen() {
+
+ try {
+
+  if(!document.fullscreenElement) {
+
+   await document.documentElement.requestFullscreen();
+
+  } else {
+
+   await document.exitFullscreen();
+
+  }
+
+ } catch(e) {
+
+  console.log("Fullscreen unavailable",e);
+
+ }
+
+}
+
+
+// ==================================
+// CLOSE READER
+// ==================================
+
+async function closeReader() {
+
+ try {
+
+  if(rendition) rendition.destroy();
+
+  if(epub) epub.destroy();
+
+  if(pdf) pdf.destroy();
+
+ } catch(e) {}
+
+ $("reader").style.display = "none";
+
+ current = null;
+
+ pdf = null;
+ epub = null;
+ rendition = null;
+
+ await renderLibrary();
+
+}
+
+
+// ==================================
+// KEYBOARD NAVIGATION
+// ==================================
+
+document.addEventListener("keydown",e=>{
+
+ if($("reader").style.display!=="flex") return;
+
+ if(e.key==="ArrowRight") nextPage();
+
+ if(e.key==="ArrowLeft") previousPage();
+
+ if(e.key==="Escape") closeReader();
+
+});
+
+
+// ==================================
+// START APP
+// ==================================
+
+(async()=>{
+
+ try {
+
+  db = await openDatabase();
+
+  await renderLibrary();
+
+ } catch(error) {
+
+  alert("Database error: "+error.message);
+
+  console.error(error);
+
+ }
+
+})();
+
+</script>
+
+</body>
+</html>
